@@ -58,11 +58,15 @@ dependencies:
   network_info_plus: ^7.0.0
   wifi_iot: ^0.3.19+2
   # Crypto (AES-ECB for polygon cipher)
-  pointycastle: ^4.0.0
+  pointycastle: ^3.9.1
   # Permissions
   permission_handler: ^12.0.1
   # Open URL (SMS/email fallback)
   url_launcher: ^6.3.0
+  encrypt: 
+  device_info_plus:
+  amazon_cognito_identity_dart_2: ^3.6.0
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
