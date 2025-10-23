@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "284699870703",
+    "project_id": "ews-test-38cbe",
+    "storage_bucket": "ews-test-38cbe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284699870703:android:0b7cf806387f6a85e2a21a",
+        "android_client_info": {
+          "package_name": "com.ews.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuhcnoe9koz7Vy1KHnnUKnihVaRYnR6Uw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284699870703:android:576d2f6cec1c7295e2a21a",
+        "android_client_info": {
+          "package_name": "com.fone.ews"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuhcnoe9koz7Vy1KHnnUKnihVaRYnR6Uw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

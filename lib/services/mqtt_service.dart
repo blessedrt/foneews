@@ -10,24 +10,46 @@ class MqttService {
   static MqttServerClient? _client;
   static final _deviceInfo = DeviceInfoPlugin();
   
-  // Encryption setup using config
-  static final _key = encrypt.Key.fromUtf8(SecurityConfig.REGISTRATION_KEY);
+  // Encryption setup using POLYGON_KEY (the actual encryption key)
+  static final _key = encrypt.Key.fromUtf8(SecurityConfig.polygonKeyBase64);
   static final _iv = encrypt.IV.fromLength(16);
   static final _encrypter = encrypt.Encrypter(
     encrypt.AES(_key, mode: encrypt.AESMode.ecb)
   );
 
   static Future<void> init() async {
-    _client = MqttServerClient(SecurityConfig.MQTT_BROKER, 
-      'ews_client_${DateTime.now().millisecondsSinceEpoch}')
+    final clientId = 'ews_client_${DateTime.now().millisecondsSinceEpoch}';
+    
+    _client = MqttServerClient(SecurityConfig.MQTT_BROKER, clientId)
       ..port = SecurityConfig.MQTT_PORT
       ..secure = true
-      ..keepAlivePeriod = 20;
+      ..keepAlivePeriod = 20
+      ..logging(on: false);
+
+    // Set up connection message with username and password
+    final connMessage = MqttConnectMessage()
+      .withClientIdentifier(clientId)
+      .authenticateAs(
+        SecurityConfig.MQTT_USERNAME, 
+        SecurityConfig.MQTT_PASSWORD
+      )
+      .startClean()
+      .withWillQos(MqttQos.atLeastOnce);
+    
+    _client!.connectionMessage = connMessage;
 
     try {
+      print('Connecting to MQTT broker: ${SecurityConfig.MQTT_BROKER}:${SecurityConfig.MQTT_PORT}');
       await _client?.connect();
+      
+      if (_client?.connectionStatus?.state == MqttConnectionState.connected) {
+        print('MQTT Connected successfully');
+      } else {
+        print('MQTT Connection failed - status: ${_client?.connectionStatus?.state}');
+        _client = null;
+      }
     } catch (e) {
-      print('MQTT Connection failed: $e');
+      print('MQTT Connection error: $e');
       _client = null;
     }
   }
@@ -39,7 +61,14 @@ class MqttService {
     double bearing
   ) async {
     if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print('MQTT not connected, attempting to reconnect...');
       await init();
+      
+      // If still not connected, return
+      if (_client?.connectionStatus?.state != MqttConnectionState.connected) {
+        print('Failed to reconnect to MQTT broker');
+        return;
+      }
     }
 
     try {
@@ -62,11 +91,12 @@ class MqttService {
       builder.addString(encrypted.base64);
       
       _client?.publishMessage(
-        'EWS-1',
+        AppConfig.topicSafeTrack, // Use the topic from config
         MqttQos.atLeastOnce,
         builder.payload!,
       );
 
+      print('Location published to ${AppConfig.topicSafeTrack}');
     } catch (e) {
       print('Failed to send location: $e');
     }
@@ -86,7 +116,7 @@ class MqttService {
         return {
           'id': info.identifierForVendor ?? 'unknown',
           'manufacturer': 'Apple',
-          'model': info.model ?? 'unknown',
+          'model': info.model,
         };
       }
     } catch (e) {
@@ -97,5 +127,10 @@ class MqttService {
       'manufacturer': 'unknown',
       'model': 'unknown'
     };
+  }
+
+  static void disconnect() {
+    _client?.disconnect();
+    _client = null;
   }
 }

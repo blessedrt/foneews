@@ -67,6 +67,7 @@ dependencies:
   device_info_plus:
   amazon_cognito_identity_dart_2: ^3.6.0
   crypto: ^3.0.3
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +85,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  assets:
+       - assets/audio/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

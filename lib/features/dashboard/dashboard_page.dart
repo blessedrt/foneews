@@ -4,6 +4,8 @@ import '../../services/location_service.dart';
 import '../../services/weather_service.dart';
 import '../../config.dart';
 import '../../widgets/safe_track_status.dart';
+import '../../services/wifi_service.dart';
+import '../../widgets/wifi_status.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -16,29 +18,58 @@ class _DashboardPageState extends State<DashboardPage> {
   String _temp = '--';
   String _cond = 'Loading...';
   GoogleMapController? _map;
-  bool _ready = false;
+  bool _ready = false; // Changed to false initially
+  bool _mapCreated = false;
+  
 
   @override
   void initState() {
     super.initState();
+    WiFiService.setActivityVisible(true);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadSafe());
+  }
+
+  @override
+  void dispose() {
+    WiFiService.setActivityVisible(false);
+    _map?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSafe() async {
     try {
+      debugPrint('🔄 Loading dashboard data...');
+      
+      // Get location first
       final loc = await LocationService.getLast()
-          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+            debugPrint('⏱️ Location request timeout');
+            return null;
+          });
 
       if (!mounted) return;
+      
       if (loc != null) {
-        _pos = LatLng(loc.latitude, loc.longitude);
-        setState(() {});
-        _map?.moveCamera(CameraUpdate.newLatLng(_pos));
+        debugPrint('✅ Location obtained: ${loc.latitude}, ${loc.longitude}');
+        setState(() {
+          _pos = LatLng(loc.latitude, loc.longitude);
+        });
+        
+        // Move camera if map is ready
+        if (_mapCreated) {
+          await _map?.animateCamera(CameraUpdate.newLatLng(_pos));
+        }
+      } else {
+        debugPrint('⚠️ Using default location (Melbourne)');
       }
 
+      // Get weather
       final w = await WeatherService.current(_pos.latitude, _pos.longitude)
-          .timeout(const Duration(seconds: 5),
-              onTimeout: () => WeatherNow(22, 'Partly Cloudy (Demo)'));
+          .timeout(const Duration(seconds: 10),
+              onTimeout: () {
+                debugPrint('⏱️ Weather request timeout');
+                return WeatherNow(22, 'Partly Cloudy (Demo)');
+              });
 
       if (!mounted) return;
       setState(() {
@@ -46,8 +77,10 @@ class _DashboardPageState extends State<DashboardPage> {
         _cond = w.condition;
         _ready = true;
       });
+      
+      debugPrint('✅ Dashboard loaded successfully');
     } catch (e, st) {
-      debugPrint('Dashboard load failed: $e\n$st');
+      debugPrint('❌ Dashboard load failed: $e\n$st');
       if (!mounted) return;
       setState(() {
         _temp = '22°C';
@@ -151,35 +184,33 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildStatusRow() {
     return Row(
       children: [
-        _buildStatusCard('BLE', Icons.bluetooth),
+        Expanded(child: _buildStatusCard('BLE', Icons.bluetooth)),
         const SizedBox(width: 12),
-        _buildStatusCard('Wi-Fi', Icons.wifi),
+        const Expanded(child: WiFiStatus()),
         const SizedBox(width: 12),
-        _buildStatusCard('Internet', Icons.cloud),
+        Expanded(child: _buildStatusCard('Internet', Icons.cloud)),
       ],
     );
   }
 
   Widget _buildStatusCard(String label, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.secondary),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withOpacity(0.8),
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.secondary),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withOpacity(0.8),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -220,10 +251,13 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  _cond,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                Flexible(
+                  child: Text(
+                    _cond,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -238,7 +272,7 @@ class _DashboardPageState extends State<DashboardPage> {
     return FloatingActionButton.extended(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SOS sent (mock)')),
+          const SnackBar(content: Text('SOS sent')),
         );
       },
       icon: const Icon(Icons.warning_amber_rounded),
@@ -249,24 +283,37 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _mapWidgetOrPlaceholder() {
     if (!_ready) {
       return Container(
-        color: Theme.of(context).colorScheme.background,
+        color: Theme.of(context).colorScheme.surface,
         child: const Center(
           child: CircularProgressIndicator(),
         ),
       );
     }
+    
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: _pos, zoom: 12),
-      onMapCreated: (c) {
-        _map = c;
-        Future.microtask(() => _map?.moveCamera(CameraUpdate.newLatLng(_pos)));
+      initialCameraPosition: CameraPosition(target: _pos, zoom: 14),
+      onMapCreated: (controller) {
+        debugPrint('🗺️ Map created');
+        _map = controller;
+        _mapCreated = true;
+        // Move to current position after map is ready
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _map?.animateCamera(CameraUpdate.newLatLng(_pos));
+        });
       },
       myLocationEnabled: true,
-      markers: {Marker(markerId: const MarkerId('me'), position: _pos)},
+      myLocationButtonEnabled: true,
+      markers: {
+        Marker(
+          markerId: const MarkerId('current'),
+          position: _pos,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        )
+      },
       mapType: MapType.normal,
-      myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
       padding: const EdgeInsets.only(bottom: 100),
+      minMaxZoomPreference: const MinMaxZoomPreference(5, 20),
     );
   }
 }
@@ -277,15 +324,17 @@ class _GradientOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.center,
-            colors: [
-              Colors.black.withOpacity(0.7),
-              Colors.transparent,
-            ],
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.center,
+              colors: [
+                Colors.black.withOpacity(0.7),
+                Colors.transparent,
+              ],
+            ),
           ),
         ),
       ),

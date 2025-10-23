@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'wifi_service.dart';
 
 class NotificationAction {
   final String id;
@@ -51,6 +52,8 @@ class Noti {
   }
   
   static void _handleNotificationAction(NotificationResponse response) {
-    // Handle action taps here
+    if (response.actionId != null) {
+      WiFiService.handleNotificationAction(response.actionId!);
+    }
   }
 }

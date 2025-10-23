@@ -48,6 +48,8 @@
 	<string>Camera access is optional for SOS or media features.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Location access helps FOneEWS deliver emergency alerts and local forecasts.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+    <string>This app needs access to connect to EWS message servers.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs your location to show nearby alerts and weather updates.</string>
 	<key>NSMicrophoneUsageDescription</key>

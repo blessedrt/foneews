@@ -44,4 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 # Local configuration
-lib/config/config.dart
+.env
