@@ -24,7 +24,7 @@ FOneEWS is a critical emergency warning system mobile application designed to de
 
 ### Alert Notification
 <img src="screenshots/message.png" alt="Sample" style="width: 250px; height: auto;"/>
-<p>*Example of an emergency alert notification with the "Listen" action button*</p>
+<p>*Example of an emergency alert notification*</p>
 
 
 ### SafeTrack Active
@@ -33,7 +33,7 @@ FOneEWS is a critical emergency warning system mobile application designed to de
 
 ### Wi-Fi Status
 <img src="screenshots/main.png" alt="Sample" style="width: 250px; height: auto;"/>
-<p>*Wi-Fi service status showing connection to EWS hotspot*</p>
+<p>*Wi-Fi service status looking for EWS hotspot*</p>
 
 
 ## 🔧 How It Works
