@@ -47,5 +47,5 @@ app.*.map.json
 /android/src/app/google-services2.json
 # Local configuration
 .env
-testmessage
+testmessage/
 /lib/config.dart
