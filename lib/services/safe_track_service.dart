@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import '../config.dart';
 import 'mqtt_service.dart';
 
 class SafeTrackService {

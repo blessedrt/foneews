@@ -5,9 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import '../config.dart';
 import 'audio_service.dart';
-import 'notifications_service.dart';
 
 class WiFiService {
   static const String TARGET_SSID = "EWS";
