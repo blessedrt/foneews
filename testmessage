@@ -1,1 +1,17 @@
-git
+curl -X POST \
+  -H "Authorization: key=YOUR_FIREBASE_SERVER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "YOUR_DEVICE_FCM_TOKEN",
+    "priority": "high",
+    "data": {
+      "messageId": "msg_test_001",
+      "s3key": "messages/test-connection-check.mp3",
+      "priority": "1",
+      "encryptedPolygon": "U2FsdGVkX1+Uu9a6D0p5UgqZ6SFFuVmABQwT3vhR8D0="
+    },
+    "notification": {
+      "title": "EWS Test Message",
+      "body": "This is a simulated EWS alert message"
+    }
+  }' \
