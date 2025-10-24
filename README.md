@@ -19,21 +19,21 @@ FOneEWS is a critical emergency warning system mobile application designed to de
 ## 📸 Screenshots
 
 ### Main Dashboard
-![Dashboard Screen](screenshots/dashboard.png)
-*The main dashboard showing system status, weather information, and quick access to emergency features*
+<img src="screenshots/dashboard.png" alt="Sample" style="width: 250px; height: auto;"/>
+<p>*The main dashboard showing system status, weather information, and quick access to emergency features*</p>
 
 ### Alert Notification
-![Alert Notification](screenshots/message.png)
-*Example of an emergency alert notification with the "Listen" action button*
+<img src="screenshots/message.png" alt="Sample" style="width: 250px; height: auto;"/>
+<p>*Example of an emergency alert notification with the "Listen" action button*</p>
 
 
 ### SafeTrack Active
-![SafeTrack Feature](screenshots/safetrack.png)
-*SafeTrack location sharing activated after receiving an emergency alert*
+<img src="screenshots/safetrack.png" alt="Sample" style="width: 250px; height: auto;"/>
+<p>*SafeTrack location sharing activated after receiving an emergency alert*</p>
 
 ### Wi-Fi Status
-![Wi-Fi Connection Status](screenshots/main.png)
-*Wi-Fi service status showing connection to EWS hotspot*
+<img src="screenshots/main.png" alt="Sample" style="width: 250px; height: auto;"/>
+<p>*Wi-Fi service status showing connection to EWS hotspot*</p>
 
 
 ## 🔧 How It Works
