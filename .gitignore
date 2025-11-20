@@ -50,5 +50,5 @@ app.*.map.json
 
 # Local configuration
 .env
-testmessage/
+testmessage
 /lib/config.dart

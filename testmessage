@@ -1,8 +1,8 @@
 curl -X POST \
-  -H "Authorization: key=YOUR_FIREBASE_SERVER_KEY" \
+  -H "Authorization: key=AIzaSyAyGpJN3hOrm8YbR0RT_PbPyYUuXZSuAzk" \
   -H "Content-Type: application/json" \
   -d '{
-    "to": "YOUR_DEVICE_FCM_TOKEN",
+    "to": "fYXy9LrXRH2TZMficzRT0Y:APA91bFyvOvFzSiZPzgVz8wLV0cQyjnPbV4scUQ2fC-qJ3anVOJivX8yU02tJs_JPb9mgf0dplagzW3EfW5R75JI6wg7eoI1Dr0VQLTlu-QJn75gMEF3NGg",
     "priority": "high",
     "data": {
       "messageId": "msg_test_001",
@@ -14,4 +14,47 @@ curl -X POST \
       "title": "EWS Test Message",
       "body": "This is a simulated EWS alert message"
     }
-  }' \
+  }' https://fcm.googleapis.com/fcm/send
+
+  curl -X POST "https://fcm.googleapis.com/v1/projects/$PROJECT_ID/messages:send" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json; charset=utf-8" \
+  -d '{
+    "to": "fYXy9LrXRH2TZMficzRT0Y:APA91bFyvOvFzSiZPzgVz8wLV0cQyjnPbV4scUQ2fC-qJ3anVOJivX8yU02tJs_JPb9mgf0dplagzW3EfW5R75JI6wg7eoI1Dr0VQLTlu-QJn75gMEF3NGg",
+    "priority": "high",
+    "data": {
+      "messageId": "msg_test_001",
+      "s3key": "messages/test-connection-check.mp3",
+      "priority": "1",
+      "encryptedPolygon": "U2FsdGVkX1+Uu9a6D0p5UgqZ6SFFuVmABQwT3vhR8D0="
+    },
+    "notification": {
+      "title": "EWS Test Message",
+      "body": "This is a simulated EWS alert message"
+    }
+  }' https://fcm.googleapis.com/fcm/send
+
+PROJECT_ID="Yformulaone-fe42b"
+
+gcloud auth activate-service-account firebase-adminsdk-fbsvc@formulaone-fe42b.iam.gserviceaccount.com \
+  --key-file=service-account.json --project=formulaone-fe42b
+
+curl -X POST "https://fcm.googleapis.com/v1/projects/formulaone-fe42b/messages:send" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json; charset=utf-8" \
+  -d '{
+    "message": {
+      "token": "d_PZ86aCTu6TC-lqFnSHas:APA91bFZxQaFxqmn7uc5haLBWTn5ivFe9AhSuuEi5dFX62bIO23rYTgj902tWZ0ZKaQDs4TFhFmq3ptEPHCVy8zpXXF2db9BL7i5LVosA7hPpFh06uicrcE",
+      "notification": { "title": "EWS Test Message", "body": "This is a simulated EWS alert message" },
+      "data": {
+        "messageId": "msg_test_001",
+        "s3key": "messages/alarm1.mp3",
+        "priority": "1",
+        "encryptedPolygon": "U2FsdGVkX1+Uu9a6D0p5UgqZ6SFFuVmABQwT3vhR8D0="
+      },
+      "android": { "priority": "HIGH" }
+    }
+  }'
+
+
+  d_PZ86aCTu6TC-lqFnSHas:APA91bFZxQaFxqmn7uc5haLBWTn5ivFe9AhSuuEi5dFX62bIO23rYTgj902tWZ0ZKaQDs4TFhFmq3ptEPHCVy8zpXXF2db9BL7i5LVosA7hPpFh06uicrcE

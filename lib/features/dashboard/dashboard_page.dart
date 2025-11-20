@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foneews/services/notifications_service.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/location_service.dart';
 import '../../services/weather_service.dart';
@@ -193,6 +194,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+
   Widget _buildStatusCard(String label, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -277,6 +279,16 @@ class _DashboardPageState extends State<DashboardPage> {
       },
       icon: const Icon(Icons.warning_amber_rounded),
       label: const Text('SOS'),
+    );
+  }
+
+  Widget _buildTestButton() {
+    return FloatingActionButton(
+      onPressed: () async {
+        await Noti.showTest();
+      },
+      tooltip: 'Test Notification',
+      child: Icon(Icons.notifications_active),
     );
   }
 

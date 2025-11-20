@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import 'geo_fence_service.dart';
 import 's3_service.dart';
 import 'audio_service.dart';
@@ -10,7 +11,7 @@ import 'package:flutter/foundation.dart';
 // TOP-LEVEL function for background messages (REQUIRED)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('🔔 Background message received: ${message.messageId}');
+  debugPrint('📬 Background message received: ${message.messageId}');
   // Initialize SharedPreferences in background isolate
   await FcmService._initializePreferences();
   await FcmService._handleMessage(message);
@@ -18,6 +19,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class FcmService {
   static const _messageIdsKey = 'processed_message_ids';
+  static const _locationTopicSubscribedKey = 'location_topic_subscribed';
   static SharedPreferences? _prefs;
   static bool _initialized = false;
 
@@ -49,7 +51,7 @@ class FcmService {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
         debugPrint('🔑 FCM Token received (length: ${token.length})');
-        debugPrint('Token preview: $token...');
+        debugPrint('Token preview: ${token.substring(0, 20)}...');
         // TODO: Send token to your server
       } else {
         debugPrint('⚠️ Failed to get FCM token');
@@ -61,9 +63,12 @@ class FcmService {
         // TODO: Update token on your server
       });
       
+      // Subscribe to FCM topics
+      await _subscribeToTopics();
+      
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((message) {
-        debugPrint('🔔 Foreground message received: ${message.messageId}');
+        debugPrint('📬 Foreground message received: ${message.messageId}');
         _handleMessage(message);
       });
       
@@ -93,6 +98,73 @@ class FcmService {
     }
   }
 
+  /// Subscribe to FCM topics based on permissions
+  static Future<void> _subscribeToTopics() async {
+    debugPrint('📡 Subscribing to FCM topics...');
+    
+    try {
+      // Always subscribe to emergency_alerts (all devices)
+      await FirebaseMessaging.instance.subscribeToTopic('emergency_alerts');
+      debugPrint('✅ Subscribed to: emergency_alerts');
+      
+      // Check location permission and subscribe to location_enabled if granted
+      await _checkAndSubscribeLocationTopic();
+      
+    } catch (e) {
+      debugPrint('❌ Error subscribing to topics: $e');
+    }
+  }
+
+  /// Check location permission and subscribe to location_enabled topic
+  static Future<void> _checkAndSubscribeLocationTopic() async {
+    try {
+      // Check if location permission is granted
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      debugPrint('📍 Location permission status: $permission');
+      
+      bool shouldSubscribe = false;
+      
+      if (permission == LocationPermission.denied) {
+        debugPrint('📍 Location permission denied, requesting...');
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        shouldSubscribe = true;
+      }
+      
+      // Check if already subscribed
+      final wasSubscribed = _prefs?.getBool(_locationTopicSubscribedKey) ?? false;
+      
+      if (shouldSubscribe) {
+        // Subscribe to location_enabled topic
+        await FirebaseMessaging.instance.subscribeToTopic('location_enabled');
+        await _prefs?.setBool(_locationTopicSubscribedKey, true);
+        debugPrint('✅ Subscribed to: location_enabled');
+        debugPrint('   Device will receive geofenced alerts');
+      } else {
+        // Unsubscribe if previously subscribed but permission now revoked
+        if (wasSubscribed) {
+          await FirebaseMessaging.instance.unsubscribeFromTopic('location_enabled');
+          await _prefs?.setBool(_locationTopicSubscribedKey, false);
+          debugPrint('⚠️ Unsubscribed from: location_enabled');
+        }
+        debugPrint('⚠️ Location permission not granted');
+        debugPrint('   Device will only receive broadcast alerts (not geofenced)');
+      }
+    } catch (e) {
+      debugPrint('❌ Error managing location topic: $e');
+    }
+  }
+
+  /// Manually refresh topic subscriptions (call after permission changes)
+  static Future<void> refreshTopicSubscriptions() async {
+    debugPrint('🔄 Refreshing topic subscriptions...');
+    await _checkAndSubscribeLocationTopic();
+  }
+
   static Future<void> _initializePreferences() async {
     if (_prefs != null) return;
     
@@ -105,9 +177,9 @@ class FcmService {
   }
 
   static Future<void> _handleMessage(RemoteMessage message) async {
-    debugPrint('═══════════════════════════════════════');
+    debugPrint('╔═══════════════════════════════════════════╗');
     debugPrint('📨 PROCESSING FCM MESSAGE');
-    debugPrint('═══════════════════════════════════════');
+    debugPrint('╚═══════════════════════════════════════════╝');
     
     debugPrint('🆔 Message ID: ${message.messageId}');
     debugPrint('📦 Message data: ${message.data}');
@@ -118,15 +190,18 @@ class FcmService {
       
       // Extract message data with validation
       final messageId = message.data['messageId']?.toString();
-      final encryptedPolygon = message.data['polygon']?.toString();
+      final encryptedPolygon = message.data['encryptedPolygon']?.toString() ?? 
+                               message.data['polygon']?.toString();
       final s3key = message.data['s3key']?.toString();
       final priorityStr = message.data['priority']?.toString();
       final priority = priorityStr != null ? int.tryParse(priorityStr) ?? 1 : 1;
+      final description = message.data['description']?.toString();
       
       debugPrint('📋 Parsed data:');
       debugPrint('  Message ID: ${messageId ?? "MISSING"}');
       debugPrint('  S3 Key: ${s3key ?? "MISSING"}');
       debugPrint('  Priority: $priority');
+      debugPrint('  Description: ${description ?? "None"}');
       debugPrint('  Polygon: ${encryptedPolygon != null ? "Present (${encryptedPolygon.length} chars)" : "None"}');
       
       // Validate required fields
@@ -163,7 +238,7 @@ class FcmService {
           // Continue processing on geofence error (fail-open for safety)
         }
       } else {
-        debugPrint('ℹ️ [STEP 1/4] No geofence polygon provided, skipping location check');
+        debugPrint('ℹ️ [STEP 1/4] No geofence polygon provided, broadcast message');
       }
       
       // STEP 2: Test S3 connection first
@@ -229,9 +304,10 @@ class FcmService {
       
       // Show notification with Listen action
       try {
+        final notificationBody = description ?? 'Tap to listen to the emergency message';
         await Noti.show(
           'Emergency Alert',
-          'Tap to listen to the emergency message',
+          notificationBody,
           actions: [
             NotificationAction(
               'listen_${messageId ?? DateTime.now().millisecondsSinceEpoch}',
@@ -258,14 +334,14 @@ class FcmService {
         debugPrint('✅ Message $messageId marked as processed');
       }
       
-      debugPrint('═══════════════════════════════════════');
+      debugPrint('╔═══════════════════════════════════════════╗');
       debugPrint('🎉 MESSAGE PROCESSING COMPLETE');
-      debugPrint('═══════════════════════════════════════');
+      debugPrint('╚═══════════════════════════════════════════╝');
       
     } catch (e, st) {
-      debugPrint('═══════════════════════════════════════');
+      debugPrint('╔═══════════════════════════════════════════╗');
       debugPrint('❌ ERROR HANDLING MESSAGE');
-      debugPrint('═══════════════════════════════════════');
+      debugPrint('╚═══════════════════════════════════════════╝');
       debugPrint('Error: $e');
       debugPrint('Stack trace: $st');
       
@@ -344,7 +420,7 @@ class FcmService {
         'messageId': messageId ?? 'test_${DateTime.now().millisecondsSinceEpoch}',
         's3key': s3key ?? 'test.mp3',
         'priority': priority.toString(),
-        if (polygon != null) 'polygon': polygon,
+        if (polygon != null) 'encryptedPolygon': polygon,
       },
     );
     
